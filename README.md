@@ -11,12 +11,12 @@ The project goal is to:
 - extract semantic structure from the rendered result
 - emit canonical JSON and derived Markdown
 
-The current implementation is Milestone 1:
+The current implementation is Milestone 2:
 
 - open a URL with Playwright
 - wait for a basic stabilization window
-- capture metadata, visible text blocks, links, and control counts
-- build a minimal `WebIR`
+- capture metadata, visible text blocks, DOM structure, accessibility roles, links, and controls
+- build a richer `WebIR`
 - output JSON to stdout or JSON plus Markdown into a folder
 
 ## Status
@@ -26,11 +26,11 @@ This repo currently contains:
 - [ARCHITECTURE.md](./ARCHITECTURE.md)
 - [ROADMAP.md](./ROADMAP.md)
 - [LANDSCAPE.md](./LANDSCAPE.md)
-- a Milestone 1 TypeScript scaffold for extraction
+- a Milestone 2 TypeScript scaffold for extraction
 
-## Milestone 1 Scope
+## Milestone 2 Scope
 
-Milestone 1 is intentionally narrow.
+Milestone 2 is still narrow, but it now fuses browser-native signals.
 
 Included:
 
@@ -38,13 +38,15 @@ Included:
 - basic stabilization heuristics
 - page metadata extraction
 - visible text block extraction
+- DOM structure capture
+- Chromium accessibility summary capture
 - link extraction
-- minimal page classification
+- richer control extraction
+- stronger page classification
 - JSON and Markdown output
 
 Not included yet:
 
-- accessibility tree fusion
 - robust boilerplate removal
 - login flows
 - interactions
@@ -99,17 +101,19 @@ Behavior:
 
 ## Current `WebIR`
 
-The current `WebIR` is intentionally minimal. It includes:
+The current `WebIR` includes:
 
 - source URL and final URL
 - title and metadata
 - page kind heuristic: `document`, `application`, or `mixed`
 - visible content blocks
 - visible links
-- control count summary
+- control summary and control items
+- DOM structure summary
+- accessibility role counts and sample nodes
 - extraction warnings
 
-This is not the final schema. It is the first working slice.
+This is still not the final schema, but it is now richer than text scraping alone.
 
 ## Repository Layout
 
@@ -119,6 +123,8 @@ src/
     runtime.ts
     stability.ts
   capture/
+    accessibility.ts
+    dom.ts
     metadata.ts
     snapshot.ts
     text.ts

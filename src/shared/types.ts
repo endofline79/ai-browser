@@ -28,11 +28,60 @@ export type RawLink = {
   href: string;
 };
 
+export type RawControlKind =
+  | "button"
+  | "input"
+  | "select"
+  | "textarea"
+  | "checkbox"
+  | "radio";
+
+export type RawControl = {
+  kind: RawControlKind;
+  type?: string;
+  name?: string;
+  label?: string;
+  placeholder?: string;
+  value?: string;
+  disabled: boolean;
+};
+
 export type RawControlSummary = {
   buttons: number;
   inputs: number;
   selects: number;
   textareas: number;
+};
+
+export type RawHeading = {
+  level: number;
+  text: string;
+};
+
+export type RawLandmark = {
+  role: string;
+  name?: string;
+};
+
+export type RawDomStructure = {
+  headings: RawHeading[];
+  landmarks: RawLandmark[];
+  forms: number;
+  lists: number;
+  tables: number;
+};
+
+export type RawAccessibilityNode = {
+  role: string;
+  name?: string;
+  value?: string;
+  description?: string;
+};
+
+export type RawAccessibilitySummary = {
+  available: boolean;
+  roleCounts: Record<string, number>;
+  nodes: RawAccessibilityNode[];
 };
 
 export type RawPageSnapshot = {
@@ -41,7 +90,12 @@ export type RawPageSnapshot = {
   metadata: RawMetadata;
   blocks: RawTextBlock[];
   links: RawLink[];
-  controls: RawControlSummary;
+  controls: {
+    summary: RawControlSummary;
+    items: RawControl[];
+  };
+  structure: RawDomStructure;
+  accessibility: RawAccessibilitySummary;
   extractedAt: string;
 };
 
@@ -56,6 +110,10 @@ export type WebLink = {
   id: string;
   text: string;
   href: string;
+};
+
+export type WebControl = RawControl & {
+  id: string;
 };
 
 export type WebIR = {
@@ -73,10 +131,15 @@ export type WebIR = {
   metadata: Record<string, MetadataValue>;
   blocks: WebBlock[];
   links: WebLink[];
-  controls: RawControlSummary;
+  controls: {
+    summary: RawControlSummary;
+    items: WebControl[];
+  };
+  structure: RawDomStructure;
+  accessibility: RawAccessibilitySummary;
   extraction: {
     stable: boolean;
-    strategy: "milestone1";
+    strategy: "milestone2";
     warnings: string[];
   };
 };

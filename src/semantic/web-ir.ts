@@ -2,15 +2,25 @@ import type { PageKind, RawPageSnapshot, WebIR } from "../shared/types.js";
 
 function classifyPageKind(snapshot: RawPageSnapshot): PageKind {
   const controlCount =
-    snapshot.controls.buttons +
-    snapshot.controls.inputs +
-    snapshot.controls.selects +
-    snapshot.controls.textareas;
+    snapshot.controls.summary.buttons +
+    snapshot.controls.summary.inputs +
+    snapshot.controls.summary.selects +
+    snapshot.controls.summary.textareas;
 
   const textChars = snapshot.blocks.reduce((total, block) => total + block.text.length, 0);
-  const headingCount = snapshot.blocks.filter((block) => block.kind === "heading").length;
+  const headingCount = snapshot.structure.headings.length;
+  const roleCounts = snapshot.accessibility.roleCounts;
+  const appRoleCount =
+    (roleCounts.grid ?? 0) +
+    (roleCounts.tablist ?? 0) +
+    (roleCounts.tab ?? 0) +
+    (roleCounts.combobox ?? 0) +
+    (roleCounts.searchbox ?? 0) +
+    (roleCounts.dialog ?? 0) +
+    (roleCounts.menu ?? 0) +
+    (roleCounts.menuitem ?? 0);
 
-  if (controlCount >= 10 && textChars < 1500) {
+  if (appRoleCount >= 2 || (controlCount >= 10 && textChars < 1500)) {
     return "application";
   }
 
@@ -18,7 +28,7 @@ function classifyPageKind(snapshot: RawPageSnapshot): PageKind {
     return "document";
   }
 
-  if (textChars >= 1500 && headingCount >= 1 && controlCount <= 8) {
+  if (textChars >= 1500 && headingCount >= 1 && controlCount <= 8 && snapshot.structure.forms <= 2) {
     return "document";
   }
 
@@ -34,6 +44,10 @@ export function buildWebIR(snapshot: RawPageSnapshot, stable: boolean): WebIR {
 
   if (snapshot.blocks.length === 0) {
     warnings.push("No visible text blocks were extracted from the rendered page.");
+  }
+
+  if (!snapshot.accessibility.available) {
+    warnings.push("Accessibility capture was unavailable for this page session.");
   }
 
   return {
@@ -60,10 +74,18 @@ export function buildWebIR(snapshot: RawPageSnapshot, stable: boolean): WebIR {
       text: link.text,
       href: link.href
     })),
-    controls: snapshot.controls,
+    controls: {
+      summary: snapshot.controls.summary,
+      items: snapshot.controls.items.map((control, index) => ({
+        id: `control-${index + 1}`,
+        ...control
+      }))
+    },
+    structure: snapshot.structure,
+    accessibility: snapshot.accessibility,
     extraction: {
       stable,
-      strategy: "milestone1",
+      strategy: "milestone2",
       warnings
     }
   };
