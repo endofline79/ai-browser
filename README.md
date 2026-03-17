@@ -11,12 +11,13 @@ The project goal is to:
 - extract semantic structure from the rendered result
 - emit canonical JSON and derived Markdown
 
-The current implementation is Milestone 3:
+The current implementation is Milestone 4:
 
 - open a URL with Playwright
 - wait for a basic stabilization window
 - capture metadata, visible text blocks, DOM structure, accessibility roles, links, and controls
 - build a hierarchical `WebIR` document tree with provenance
+- score regions and blocks for primary content vs boilerplate
 - output JSON to stdout or JSON plus Markdown into a folder
 
 ## Status
@@ -26,11 +27,11 @@ This repo currently contains:
 - [ARCHITECTURE.md](./ARCHITECTURE.md)
 - [ROADMAP.md](./ROADMAP.md)
 - [LANDSCAPE.md](./LANDSCAPE.md)
-- a Milestone 3 TypeScript scaffold for extraction
+- a Milestone 4 TypeScript scaffold for extraction and quality scoring
 
-## Milestone 3 Scope
+## Milestone 4 Scope
 
-Milestone 3 makes `WebIR` into a real intermediate representation instead of a mostly flat payload.
+Milestone 4 is the first quality/distillation pass over the tree.
 
 Included:
 
@@ -44,16 +45,18 @@ Included:
 - control extraction
 - document/application/mixed classification signals
 - hierarchical document tree
+- content quality labels: `primary`, `supporting`, `boilerplate`
+- main-content summaries and extraction confidence
 - JSON and Markdown output
 
 Not included yet:
 
-- robust boilerplate removal
-- main-content extraction scoring
+- robust multi-page deduplication
+- site-specific boilerplate models
+- main-content extraction regression suite
 - login flows
 - interactions
 - crawling
-- screenshot-based extraction
 
 ## Quick Start
 
@@ -109,14 +112,16 @@ The current `WebIR` includes:
 - title and metadata
 - page kind heuristic plus classification signals
 - a hierarchical `document` tree
+- per-block provenance and quality labels
 - flat semantic content blocks for convenience
+- a `content` summary with primary/supporting/boilerplate block ids
 - visible links
 - control summary and control items
 - DOM structure summary
 - accessibility role counts and sample nodes
-- extraction warnings
+- extraction warnings and confidence
 
-The canonical structure is now the `document` tree. The flat `blocks` list is a convenience view.
+The canonical structure is the `document` tree. The flat `blocks` list and Markdown are derived views.
 
 ## Repository Layout
 
@@ -136,6 +141,7 @@ src/
     markdown.ts
   semantic/
     block-tree.ts
+    quality.ts
     web-ir.ts
   shared/
     types.ts

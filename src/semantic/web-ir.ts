@@ -1,4 +1,5 @@
 import { buildDocumentTree } from "./block-tree.js";
+import { annotateDocumentQuality } from "./quality.js";
 import type { ClassificationSignals, PageKind, RawPageSnapshot, WebIR } from "../shared/types.js";
 
 function buildClassificationSignals(snapshot: RawPageSnapshot): ClassificationSignals {
@@ -70,6 +71,20 @@ export function buildWebIR(snapshot: RawPageSnapshot, stable: boolean): WebIR {
   const classificationSignals = buildClassificationSignals(snapshot);
   const kind = classifyPageKind(snapshot, classificationSignals);
   const documentTree = buildDocumentTree(snapshot, snapshot.metadata.title);
+  const content = annotateDocumentQuality(documentTree.document, kind, stable);
+  const usefulTextChars = content.primaryTextChars + content.supportingTextChars;
+
+  if (kind === "document" && usefulTextChars < 80) {
+    warnings.push("Main-content extraction is thin for a document-like page.");
+  }
+
+  if (content.boilerplateTextChars > usefulTextChars) {
+    warnings.push("Boilerplate text outweighs main content in the current extraction.");
+  }
+
+  if (content.confidence < 0.45) {
+    warnings.push("Overall extraction confidence is low.");
+  }
 
   return {
     source: {
@@ -87,6 +102,7 @@ export function buildWebIR(snapshot: RawPageSnapshot, stable: boolean): WebIR {
     metadata: snapshot.metadata.meta,
     document: documentTree.document,
     blocks: documentTree.flatBlocks,
+    content,
     links: snapshot.links.map((link, index) => ({
       id: `link-${index + 1}`,
       text: link.text,
@@ -103,8 +119,9 @@ export function buildWebIR(snapshot: RawPageSnapshot, stable: boolean): WebIR {
     accessibility: snapshot.accessibility,
     extraction: {
       stable,
-      strategy: "milestone3",
-      warnings
+      strategy: "milestone4",
+      warnings,
+      confidence: content.confidence
     }
   };
 }

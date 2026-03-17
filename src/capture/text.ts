@@ -52,6 +52,7 @@ const TEXT_CAPTURE_SCRIPT = `(() => {
     const explicitRole = element.getAttribute("role");
 
     if (explicitRole && [
+      "article",
       "main",
       "navigation",
       "banner",
@@ -65,6 +66,8 @@ const TEXT_CAPTURE_SCRIPT = `(() => {
     }
 
     switch (element.tagName) {
+      case "ARTICLE":
+        return "article";
       case "MAIN":
         return "main";
       case "NAV":

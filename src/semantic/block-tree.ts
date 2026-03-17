@@ -160,6 +160,12 @@ export function buildDocumentTree(
     role,
     level,
     provenance,
+    quality: {
+      label: "supporting",
+      score: 0,
+      textChars: 0,
+      reasons: []
+    },
     children
   });
 

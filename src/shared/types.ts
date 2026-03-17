@@ -118,12 +118,21 @@ export type WebBlockKind =
   | "quote"
   | "control";
 
+export type ContentLabel = "primary" | "supporting" | "boilerplate";
+
 export type WebProvenance = {
   sources: WebSource[];
   order?: number;
   sourceTag?: string;
   regionRole?: string;
   regionName?: string;
+};
+
+export type WebQuality = {
+  label: ContentLabel;
+  score: number;
+  textChars: number;
+  reasons: string[];
 };
 
 export type WebBlock = {
@@ -134,6 +143,7 @@ export type WebBlock = {
   role?: string;
   level?: number;
   provenance: WebProvenance;
+  quality: WebQuality;
   children: WebBlock[];
 };
 
@@ -155,6 +165,16 @@ export type ClassificationSignals = {
   landmarkCount: number;
 };
 
+export type ContentSummary = {
+  primaryBlockIds: string[];
+  supportingBlockIds: string[];
+  boilerplateBlockIds: string[];
+  primaryTextChars: number;
+  supportingTextChars: number;
+  boilerplateTextChars: number;
+  confidence: number;
+};
+
 export type WebIR = {
   source: {
     url: string;
@@ -171,6 +191,7 @@ export type WebIR = {
   metadata: Record<string, MetadataValue>;
   document: WebBlock;
   blocks: WebBlock[];
+  content: ContentSummary;
   links: WebLink[];
   controls: {
     summary: RawControlSummary;
@@ -180,7 +201,8 @@ export type WebIR = {
   accessibility: RawAccessibilitySummary;
   extraction: {
     stable: boolean;
-    strategy: "milestone3";
+    strategy: "milestone4";
     warnings: string[];
+    confidence: number;
   };
 };
