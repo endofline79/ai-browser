@@ -1,0 +1,70 @@
+import type { PageKind, RawPageSnapshot, WebIR } from "../shared/types.js";
+
+function classifyPageKind(snapshot: RawPageSnapshot): PageKind {
+  const controlCount =
+    snapshot.controls.buttons +
+    snapshot.controls.inputs +
+    snapshot.controls.selects +
+    snapshot.controls.textareas;
+
+  const textChars = snapshot.blocks.reduce((total, block) => total + block.text.length, 0);
+  const headingCount = snapshot.blocks.filter((block) => block.kind === "heading").length;
+
+  if (controlCount >= 10 && textChars < 1500) {
+    return "application";
+  }
+
+  if (controlCount <= 2 && headingCount >= 1 && textChars >= 80) {
+    return "document";
+  }
+
+  if (textChars >= 1500 && headingCount >= 1 && controlCount <= 8) {
+    return "document";
+  }
+
+  return "mixed";
+}
+
+export function buildWebIR(snapshot: RawPageSnapshot, stable: boolean): WebIR {
+  const warnings: string[] = [];
+
+  if (!stable) {
+    warnings.push("Page did not reach network-idle during the stabilization window.");
+  }
+
+  if (snapshot.blocks.length === 0) {
+    warnings.push("No visible text blocks were extracted from the rendered page.");
+  }
+
+  return {
+    source: {
+      url: snapshot.sourceUrl,
+      finalUrl: snapshot.finalUrl,
+      fetchedAt: snapshot.extractedAt,
+      title: snapshot.metadata.title
+    },
+    page: {
+      kind: classifyPageKind(snapshot),
+      language: snapshot.metadata.lang,
+      description: snapshot.metadata.description
+    },
+    metadata: snapshot.metadata.meta,
+    blocks: snapshot.blocks.map((block, index) => ({
+      id: `block-${index + 1}`,
+      kind: block.kind,
+      text: block.text,
+      level: block.level
+    })),
+    links: snapshot.links.map((link, index) => ({
+      id: `link-${index + 1}`,
+      text: link.text,
+      href: link.href
+    })),
+    controls: snapshot.controls,
+    extraction: {
+      stable,
+      strategy: "milestone1",
+      warnings
+    }
+  };
+}
