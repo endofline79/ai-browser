@@ -21,6 +21,10 @@ export type RawTextBlock = {
   kind: RawBlockKind;
   text: string;
   level?: number;
+  order: number;
+  sourceTag: string;
+  regionRole?: string;
+  regionName?: string;
 };
 
 export type RawLink = {
@@ -99,11 +103,38 @@ export type RawPageSnapshot = {
   extractedAt: string;
 };
 
+export type WebSource = "text" | "dom" | "accessibility";
+
+export type WebBlockKind =
+  | "document"
+  | "region"
+  | "section"
+  | "list"
+  | "controls"
+  | "heading"
+  | "paragraph"
+  | "list_item"
+  | "code"
+  | "quote"
+  | "control";
+
+export type WebProvenance = {
+  sources: WebSource[];
+  order?: number;
+  sourceTag?: string;
+  regionRole?: string;
+  regionName?: string;
+};
+
 export type WebBlock = {
   id: string;
-  kind: RawBlockKind;
-  text: string;
+  kind: WebBlockKind;
+  text?: string;
+  name?: string;
+  role?: string;
   level?: number;
+  provenance: WebProvenance;
+  children: WebBlock[];
 };
 
 export type WebLink = {
@@ -114,6 +145,14 @@ export type WebLink = {
 
 export type WebControl = RawControl & {
   id: string;
+};
+
+export type ClassificationSignals = {
+  textChars: number;
+  controlCount: number;
+  headingCount: number;
+  appRoleCount: number;
+  landmarkCount: number;
 };
 
 export type WebIR = {
@@ -127,8 +166,10 @@ export type WebIR = {
     kind: PageKind;
     language?: string;
     description?: string;
+    classificationSignals: ClassificationSignals;
   };
   metadata: Record<string, MetadataValue>;
+  document: WebBlock;
   blocks: WebBlock[];
   links: WebLink[];
   controls: {
@@ -139,7 +180,7 @@ export type WebIR = {
   accessibility: RawAccessibilitySummary;
   extraction: {
     stable: boolean;
-    strategy: "milestone2";
+    strategy: "milestone3";
     warnings: string[];
   };
 };

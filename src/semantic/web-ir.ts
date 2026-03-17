@@ -1,6 +1,7 @@
-import type { PageKind, RawPageSnapshot, WebIR } from "../shared/types.js";
+import { buildDocumentTree } from "./block-tree.js";
+import type { ClassificationSignals, PageKind, RawPageSnapshot, WebIR } from "../shared/types.js";
 
-function classifyPageKind(snapshot: RawPageSnapshot): PageKind {
+function buildClassificationSignals(snapshot: RawPageSnapshot): ClassificationSignals {
   const controlCount =
     snapshot.controls.summary.buttons +
     snapshot.controls.summary.inputs +
@@ -9,6 +10,7 @@ function classifyPageKind(snapshot: RawPageSnapshot): PageKind {
 
   const textChars = snapshot.blocks.reduce((total, block) => total + block.text.length, 0);
   const headingCount = snapshot.structure.headings.length;
+  const landmarkCount = snapshot.structure.landmarks.length;
   const roleCounts = snapshot.accessibility.roleCounts;
   const appRoleCount =
     (roleCounts.grid ?? 0) +
@@ -20,15 +22,30 @@ function classifyPageKind(snapshot: RawPageSnapshot): PageKind {
     (roleCounts.menu ?? 0) +
     (roleCounts.menuitem ?? 0);
 
-  if (appRoleCount >= 2 || (controlCount >= 10 && textChars < 1500)) {
+  return {
+    textChars,
+    controlCount,
+    headingCount,
+    appRoleCount,
+    landmarkCount
+  };
+}
+
+function classifyPageKind(snapshot: RawPageSnapshot, signals: ClassificationSignals): PageKind {
+  if (signals.appRoleCount >= 2 || (signals.controlCount >= 10 && signals.textChars < 1500)) {
     return "application";
   }
 
-  if (controlCount <= 2 && headingCount >= 1 && textChars >= 80) {
+  if (signals.controlCount <= 2 && signals.headingCount >= 1 && signals.textChars >= 80) {
     return "document";
   }
 
-  if (textChars >= 1500 && headingCount >= 1 && controlCount <= 8 && snapshot.structure.forms <= 2) {
+  if (
+    signals.textChars >= 1500 &&
+    signals.headingCount >= 1 &&
+    signals.controlCount <= 8 &&
+    snapshot.structure.forms <= 2
+  ) {
     return "document";
   }
 
@@ -50,6 +67,10 @@ export function buildWebIR(snapshot: RawPageSnapshot, stable: boolean): WebIR {
     warnings.push("Accessibility capture was unavailable for this page session.");
   }
 
+  const classificationSignals = buildClassificationSignals(snapshot);
+  const kind = classifyPageKind(snapshot, classificationSignals);
+  const documentTree = buildDocumentTree(snapshot, snapshot.metadata.title);
+
   return {
     source: {
       url: snapshot.sourceUrl,
@@ -58,17 +79,14 @@ export function buildWebIR(snapshot: RawPageSnapshot, stable: boolean): WebIR {
       title: snapshot.metadata.title
     },
     page: {
-      kind: classifyPageKind(snapshot),
+      kind,
       language: snapshot.metadata.lang,
-      description: snapshot.metadata.description
+      description: snapshot.metadata.description,
+      classificationSignals
     },
     metadata: snapshot.metadata.meta,
-    blocks: snapshot.blocks.map((block, index) => ({
-      id: `block-${index + 1}`,
-      kind: block.kind,
-      text: block.text,
-      level: block.level
-    })),
+    document: documentTree.document,
+    blocks: documentTree.flatBlocks,
     links: snapshot.links.map((link, index) => ({
       id: `link-${index + 1}`,
       text: link.text,
@@ -85,7 +103,7 @@ export function buildWebIR(snapshot: RawPageSnapshot, stable: boolean): WebIR {
     accessibility: snapshot.accessibility,
     extraction: {
       stable,
-      strategy: "milestone2",
+      strategy: "milestone3",
       warnings
     }
   };

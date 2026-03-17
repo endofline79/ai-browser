@@ -11,12 +11,12 @@ The project goal is to:
 - extract semantic structure from the rendered result
 - emit canonical JSON and derived Markdown
 
-The current implementation is Milestone 2:
+The current implementation is Milestone 3:
 
 - open a URL with Playwright
 - wait for a basic stabilization window
 - capture metadata, visible text blocks, DOM structure, accessibility roles, links, and controls
-- build a richer `WebIR`
+- build a hierarchical `WebIR` document tree with provenance
 - output JSON to stdout or JSON plus Markdown into a folder
 
 ## Status
@@ -26,28 +26,30 @@ This repo currently contains:
 - [ARCHITECTURE.md](./ARCHITECTURE.md)
 - [ROADMAP.md](./ROADMAP.md)
 - [LANDSCAPE.md](./LANDSCAPE.md)
-- a Milestone 2 TypeScript scaffold for extraction
+- a Milestone 3 TypeScript scaffold for extraction
 
-## Milestone 2 Scope
+## Milestone 3 Scope
 
-Milestone 2 is still narrow, but it now fuses browser-native signals.
+Milestone 3 makes `WebIR` into a real intermediate representation instead of a mostly flat payload.
 
 Included:
 
 - Chromium-backed page load
 - basic stabilization heuristics
 - page metadata extraction
-- visible text block extraction
+- visible text block extraction with region provenance
 - DOM structure capture
 - Chromium accessibility summary capture
 - link extraction
-- richer control extraction
-- stronger page classification
+- control extraction
+- document/application/mixed classification signals
+- hierarchical document tree
 - JSON and Markdown output
 
 Not included yet:
 
 - robust boilerplate removal
+- main-content extraction scoring
 - login flows
 - interactions
 - crawling
@@ -105,15 +107,16 @@ The current `WebIR` includes:
 
 - source URL and final URL
 - title and metadata
-- page kind heuristic: `document`, `application`, or `mixed`
-- visible content blocks
+- page kind heuristic plus classification signals
+- a hierarchical `document` tree
+- flat semantic content blocks for convenience
 - visible links
 - control summary and control items
 - DOM structure summary
 - accessibility role counts and sample nodes
 - extraction warnings
 
-This is still not the final schema, but it is now richer than text scraping alone.
+The canonical structure is now the `document` tree. The flat `blocks` list is a convenience view.
 
 ## Repository Layout
 
@@ -132,6 +135,7 @@ src/
     json.ts
     markdown.ts
   semantic/
+    block-tree.ts
     web-ir.ts
   shared/
     types.ts

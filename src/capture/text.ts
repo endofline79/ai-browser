@@ -1,11 +1,10 @@
 import type { Page } from "playwright";
 
-import type { RawLink, RawTextBlock, RawControlSummary } from "../shared/types.js";
+import type { RawLink, RawTextBlock } from "../shared/types.js";
 
 type TextCapture = {
   blocks: RawTextBlock[];
   links: RawLink[];
-  controls: RawControlSummary;
 };
 
 const TEXT_CAPTURE_SCRIPT = `(() => {
@@ -25,6 +24,80 @@ const TEXT_CAPTURE_SCRIPT = `(() => {
 
   function normalize(value) {
     return value.replace(/\\s+/g, " ").trim();
+  }
+
+  function readAriaLabelledBy(element) {
+    const labelledBy = element.getAttribute("aria-labelledby");
+
+    if (!labelledBy) {
+      return undefined;
+    }
+
+    const text = labelledBy
+      .split(/\\s+/)
+      .map((id) => document.getElementById(id))
+      .filter(Boolean)
+      .map((label) => normalize(label.textContent || ""))
+      .filter(Boolean)
+      .join(" ");
+
+    return text || undefined;
+  }
+
+  function detectLandmarkRole(element) {
+    if (!element) {
+      return undefined;
+    }
+
+    const explicitRole = element.getAttribute("role");
+
+    if (explicitRole && [
+      "main",
+      "navigation",
+      "banner",
+      "contentinfo",
+      "complementary",
+      "search",
+      "form",
+      "region"
+    ].includes(explicitRole)) {
+      return explicitRole;
+    }
+
+    switch (element.tagName) {
+      case "MAIN":
+        return "main";
+      case "NAV":
+        return "navigation";
+      case "HEADER":
+        return "banner";
+      case "FOOTER":
+        return "contentinfo";
+      case "ASIDE":
+        return "complementary";
+      case "FORM":
+        return "form";
+      default:
+        return undefined;
+    }
+  }
+
+  function detectRegion(element) {
+    const landmark = element.closest("main,nav,header,footer,aside,form,[role]");
+    const regionRole = detectLandmarkRole(landmark);
+
+    if (!regionRole) {
+      return {};
+    }
+
+    const regionName = normalize(
+      (landmark.getAttribute("aria-label") || readAriaLabelledBy(landmark) || "")
+    );
+
+    return {
+      regionRole,
+      regionName: regionName || undefined
+    };
   }
 
   const blocks = [];
@@ -55,7 +128,14 @@ const TEXT_CAPTURE_SCRIPT = `(() => {
       kind = "quote";
     }
 
-    blocks.push({ kind, text, level });
+    blocks.push({
+      kind,
+      text,
+      level,
+      order: blocks.length + 1,
+      sourceTag: element.tagName.toLowerCase(),
+      ...detectRegion(element)
+    });
   }
 
   const links = Array.from(document.querySelectorAll("a[href]"))
@@ -66,14 +146,7 @@ const TEXT_CAPTURE_SCRIPT = `(() => {
     }))
     .filter((link) => link.href.length > 0);
 
-  const controls = {
-    buttons: Array.from(document.querySelectorAll("button")).filter((element) => isVisible(element)).length,
-    inputs: Array.from(document.querySelectorAll("input")).filter((element) => isVisible(element)).length,
-    selects: Array.from(document.querySelectorAll("select")).filter((element) => isVisible(element)).length,
-    textareas: Array.from(document.querySelectorAll("textarea")).filter((element) => isVisible(element)).length
-  };
-
-  return { blocks, links, controls };
+  return { blocks, links };
 })()`;
 
 export async function captureTextContent(page: Page): Promise<TextCapture> {
